@@ -1,0 +1,13 @@
+[package]
+name = "offregisters-nodejs"
+version = "0.1.0"
+authors = ["Samuel Marks @SamuelMarks"]
+edition = "2018"
+
+[dependencies]
+offregisters-lib = { path = "../offregisters-lib" }
+lazy_static = "1.2.0"
+url = "1.7.2"
+serde_json = "1.0.38"
+serde = { version = "1.0.88", features = ["derive"] }
+failure = "0.1.5"
