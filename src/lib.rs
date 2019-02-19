@@ -3,6 +3,8 @@ extern crate lazy_static;
 
 extern crate serde;
 
+extern crate semver;
+
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
@@ -15,7 +17,12 @@ use serde::{Deserialize, Serialize};
 
 use url::Url;
 
+use semver::Version as SemverVersion;
+
 use offregisters_lib::download::download;
+use std::io::BufReader;
+use std::fs::File;
+use std::path::Path;
 
 const VERSIONS_URL: &'static str = "https://nodejs.org/dist/index.json";
 
@@ -35,9 +42,9 @@ struct Version {
 }
 
 fn bool_or_string<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-    where
-        T: Deserialize<'de> + FromStr<Err=std::string::ParseError>,
-        D: Deserializer<'de>,
+where
+    T: Deserialize<'de> + FromStr<Err = std::string::ParseError>,
+    D: Deserializer<'de>,
 {
     // This is a Visitor that forwards string types to T's `FromStr` impl and
     // forwards map types to T's `Deserialize` impl. The `PhantomData` is to
@@ -47,8 +54,8 @@ fn bool_or_string<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     struct BoolOrString<T>(PhantomData<fn() -> T>);
 
     impl<'de, T> Visitor<'de> for BoolOrString<T>
-        where
-            T: Deserialize<'de> + FromStr<Err=std::string::ParseError>,
+    where
+        T: Deserialize<'de> + FromStr<Err = std::string::ParseError>,
     {
         type Value = T;
 
@@ -57,16 +64,16 @@ fn bool_or_string<'de, T, D>(deserializer: D) -> Result<T, D::Error>
         }
 
         fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
+        where
+            E: serde::de::Error,
         {
             self.visit_str(if value { "true" } else { "false" })
             // Err(Error::invalid_type(Unexpected::Bool(value), &self))
         }
 
         fn visit_str<E>(self, value: &str) -> Result<T, E>
-            where
-                E: de::Error,
+        where
+            E: de::Error,
         {
             Ok(FromStr::from_str(value).unwrap())
         }
@@ -90,8 +97,12 @@ lazy_static! {
         .into_boxed_str()
     )];
     static ref VERSIONS: Vec<Version> = || -> Vec<Version> {
-        let url = Url::parse(VERSIONS_URL).unwrap();
-        serde_json::from_str(&*download(None, vec![url.clone()]).unwrap()[&url].text).unwrap()
+        if cfg!(test) {
+            serde_json::from_reader(BufReader::new(File::open(Path::new("mocks").join("index.json")).unwrap())).unwrap()
+        } else {
+            let url = Url::parse(VERSIONS_URL).unwrap();
+            serde_json::from_str(&*download(None, vec![url.clone()]).unwrap()[&url].text).unwrap()
+        }
     }();
 }
 
@@ -99,7 +110,7 @@ fn already_setup() -> bool {
     false
 }
 
-fn _filter_versions(filter: &str) -> impl Iterator<Item=&Version> {
+fn _filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
     VERSIONS.iter().filter(move |version: &&Version| {
         if filter == "lts" {
             version.lts != "false"
@@ -112,13 +123,13 @@ fn _filter_versions(filter: &str) -> impl Iterator<Item=&Version> {
 fn _highest_version(versions: Vec<&Version>) -> &Version {
     VERSIONS
         .iter()
-        .fold(versions[0].clone(), |previous, current|
-            if previous.version.len() < current.version.len() {
+        .fold(versions[0].clone(), |previous, current| {
+            if SemverVersion::parse(&previous.version) < SemverVersion::parse(&current.version) {
                 current
             } else {
                 previous
-            },
-        )
+            }
+        })
 }
 
 fn pre_install() {}
@@ -255,8 +266,8 @@ mod tests {
         assert_eq!(
             _highest_version(versions),
             &Version {
-                version: String::from("v10.15.1"),
-                date: String::from("2019-01-29"),
+                version: String::from("v11.10.0"),
+                date: String::from("2019-02-14"),
                 files: vec![
                     String::from("aix-ppc64"),
                     String::from("headers"),
@@ -279,13 +290,13 @@ mod tests {
                     String::from("win-x86-msi"),
                     String::from("win-x86-zip")
                 ],
-                npm: Some(String::from("6.4.1")),
-                v8: String::from("6.8.275.32"),
-                uv: Some(String::from("1.23.2")),
+                npm: Some(String::from("6.7.0")),
+                v8: String::from("7.0.276.38"),
+                uv: Some(String::from("1.26.0")),
                 zlib: Some(String::from("1.2.11")),
-                openssl: Some(String::from("1.1.0j")),
-                modules: Some(String::from("64")),
-                lts: String::from("Dubnium"),
+                openssl: Some(String::from("1.1.1a")),
+                modules: Some(String::from("67")),
+                lts: String::from("false"),
             }
         );
     }
@@ -298,8 +309,10 @@ mod tests {
 
         // [&'static str; 1]
         for url in URLS.iter() {
-            println!("url: {} ;", url);
-            assert_eq!(url, &"foo");
+            assert_eq!(
+                url,
+                &"https://nodejs.org/dist/v10.15.0/node-v10.15.0-darwin-x64.tar.gz"
+            );
         }
 
         /*match download::<String>() {
