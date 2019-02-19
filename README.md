@@ -17,6 +17,7 @@ We use [rust-clippy](https://github.com/rust-lang-nursery/rust-clippy) linters t
 There are plenty of [IDEs](https://areweideyet.com) and other [Rust development tools to consider](https://github.com/rust-unofficial/awesome-rust#development-tools).
 
 ### Step-by-step guide
+Run this after you have cloned/downloaded this repository and `cd`'d to its directory;
 ```bash
 # Install Rust (nightly)
 $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
@@ -24,8 +25,6 @@ $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 $ cargo install --force cargo-make
 # Install rustfmt (Rust formatter)
 $ rustup component add rustfmt
-# Clone this repo
-$ git clone https://github.com/offscale/offregisters-lib && cd offregisters-lib
 # Run tests
 $ cargo test
 # Format, download dependencies, build and test

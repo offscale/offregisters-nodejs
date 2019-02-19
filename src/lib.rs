@@ -3,7 +3,11 @@ extern crate lazy_static;
 
 use failure::Error;
 
+use offregisters_lib::download::download;
+use offregisters_lib::env::env_or;
 use offregisters_lib::OffRegisters;
+use std::path::Path;
+use url::Url;
 
 mod helpers;
 
@@ -15,6 +19,12 @@ impl OffRegisters for NodeJs {
     }
 
     fn pre_install() -> Result<(), Error> {
+        let download_dir: std::ffi::OsString = env_or("ASSET_DIR", "assets");
+        std::fs::create_dir_all(&download_dir)?;
+        download(
+            Some(&download_dir),
+            URLS.iter().map(|url| Url::parse(url).unwrap()).collect(),
+        )?;
         Ok(())
     }
 
@@ -36,15 +46,38 @@ lazy_static! {
         Some(val) => val.to_string_lossy().into(),
         None => String::from("10.15.1"),
     };
-    static ref URLS: [&'static str; 1] = [Box::leak(
-        format!(
-            "https://nodejs.org/dist/v{ver}/node-v{ver}-{os}-{arch}.tar.gz",
-            ver = *NODE_VERSION,
-            os = std::env::consts::OS.replace("macos", "darwin"),
-            arch = std::env::consts::ARCH.replace("x86_64", "x64"),
-        )
-        .into_boxed_str()
-    )];
+    static ref URLS: [&'static str; 4] = [
+        Box::leak(
+            format!(
+                "https://nodejs.org/dist/v{ver}/SHASUMS256.txt",
+                ver = *NODE_VERSION
+            )
+            .into_boxed_str()
+        ),
+        Box::leak(
+            format!(
+                "https://nodejs.org/dist/v{ver}/SHASUMS256.txt.asc",
+                ver = *NODE_VERSION
+            )
+            .into_boxed_str()
+        ),
+        Box::leak(
+            format!(
+                "https://nodejs.org/dist/v{ver}/SHASUMS256.txt.sig",
+                ver = *NODE_VERSION
+            )
+            .into_boxed_str()
+        ),
+        Box::leak(
+            format!(
+                "https://nodejs.org/dist/v{ver}/node-v{ver}-{os}-{arch}.tar.gz",
+                ver = *NODE_VERSION,
+                os = std::env::consts::OS.replace("macos", "darwin"),
+                arch = std::env::consts::ARCH.replace("x86_64", "x64"),
+            )
+            .into_boxed_str()
+        ),
+    ];
 }
 
 #[cfg(test)]
@@ -57,12 +90,25 @@ mod tests {
     }
 
     #[test]
+    fn pre_install() {
+        NodeJs::pre_install().unwrap();
+    }
+
+    #[test]
     fn url_parsed() {
-        for url in URLS.iter() {
-            assert_eq!(
-                url,
-                &"https://nodejs.org/dist/v10.15.1/node-v10.15.1-darwin-x64.tar.gz"
-            );
-        }
+        assert_eq!(URLS.len(), 4);
+        assert_eq!(URLS[0], "https://nodejs.org/dist/v10.15.1/SHASUMS256.txt");
+        assert_eq!(
+            URLS[1],
+            "https://nodejs.org/dist/v10.15.1/SHASUMS256.txt.asc"
+        );
+        assert_eq!(
+            URLS[2],
+            "https://nodejs.org/dist/v10.15.1/SHASUMS256.txt.sig"
+        );
+        assert_eq!(
+            URLS[3],
+            "https://nodejs.org/dist/v10.15.1/node-v10.15.1-darwin-x64.tar.gz"
+        );
     }
 }

@@ -3,6 +3,8 @@ extern crate serde;
 extern crate semver;
 
 use std::fmt;
+use std::fs::File;
+use std::io::BufReader;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
@@ -15,9 +17,6 @@ use url::Url;
 use semver::Version as SemverVersion;
 
 use offregisters_lib::download::download;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
 
 const VERSIONS_URL: &'static str = "https://nodejs.org/dist/index.json";
 
@@ -86,12 +85,18 @@ lazy_static! {
             .unwrap()
         } else {
             let url = Url::parse(VERSIONS_URL).unwrap();
-            serde_json::from_str(&*download(None, vec![url.clone()]).unwrap()[&url].text).unwrap()
+            serde_json::from_slice(
+                &*download(None, vec![url.clone()]).unwrap()[&url]
+                    .raw
+                    .clone()
+                    .unwrap(),
+            )
+            .unwrap()
         }
     }();
 }
 
-fn _filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
+fn filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
     VERSIONS.iter().filter(move |version: &&Version| {
         if filter == "lts" {
             version.lts != "false"
@@ -101,7 +106,7 @@ fn _filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
     })
 }
 
-fn _highest_version(versions: Vec<&Version>) -> &Version {
+fn highest_version(versions: Vec<&Version>) -> &Version {
     VERSIONS
         .iter()
         .fold(versions[0].clone(), |previous, current| {
@@ -119,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_get_versions() {
-        let lts_versions: Vec<&String> = _filter_versions("lts")
+        let lts_versions: Vec<&String> = filter_versions("lts")
             .map(move |version| &version.version)
             .collect();
         assert_eq!(
@@ -140,7 +145,7 @@ mod tests {
             ]
         );
 
-        let onetime_lts: Vec<&Version> = _filter_versions("v10.15.1").collect();
+        let onetime_lts: Vec<&Version> = filter_versions("v10.15.1").collect();
 
         assert_eq!(
             onetime_lts[0],
@@ -179,7 +184,7 @@ mod tests {
             }
         );
 
-        let all_lts_versions: Vec<&Version> = _filter_versions("lts").collect();
+        let all_lts_versions: Vec<&Version> = filter_versions("lts").collect();
 
         assert_ne!(
             all_lts_versions[0],
@@ -198,7 +203,7 @@ mod tests {
         );
 
         assert_eq!(
-            _highest_version(all_lts_versions),
+            highest_version(all_lts_versions),
             &Version {
                 version: String::from("v10.15.1"),
                 date: String::from("2019-01-29"),
@@ -237,7 +242,7 @@ mod tests {
         let versions: Vec<&Version> = VERSIONS.iter().map(|v| v).collect();
 
         assert_eq!(
-            _highest_version(versions),
+            highest_version(versions),
             &Version {
                 version: String::from("v11.10.0"),
                 date: String::from("2019-02-14"),
