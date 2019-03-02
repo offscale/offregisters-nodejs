@@ -3,11 +3,12 @@ extern crate lazy_static;
 
 use failure::Error;
 
+use url::Url;
+
+use offregisters_lib::archive::untar_all_in_dir;
 use offregisters_lib::download::download;
 use offregisters_lib::env::env_or;
 use offregisters_lib::OffRegisters;
-
-use url::Url;
 
 mod helpers;
 
@@ -21,11 +22,9 @@ impl OffRegisters for NodeJs {
     fn pre_install() -> Result<(), Error> {
         let download_dir: std::ffi::OsString = env_or("ASSET_DIR", "assets");
         std::fs::create_dir_all(&download_dir)?;
-        download(
-            Some(&download_dir),
-            URLS.iter().map(|url| Url::parse(url).unwrap()).collect(),
-            false,
-        )?;
+        download(Some(&download_dir), URLS_V.to_vec(), false)?;
+        untar_all_in_dir(&download_dir, Some(&download_dir))?;
+
         Ok(())
     }
 
@@ -79,6 +78,7 @@ lazy_static! {
             .into_boxed_str()
         ),
     ];
+    static ref URLS_V: Vec<Url> = URLS.iter().map(|url| Url::parse(url).unwrap()).collect();
 }
 
 #[cfg(test)]

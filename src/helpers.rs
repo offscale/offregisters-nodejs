@@ -87,7 +87,8 @@ lazy_static! {
         } else {
             let url: Url = Url::parse(VERSIONS_URL).unwrap();
             serde_json::from_slice(
-                &*download(None as Option<std::ffi::OsString>, vec![url.clone()], false).unwrap()[&url]
+                &*download(None as Option<std::ffi::OsString>, vec![url.clone()], false).unwrap()
+                    [&url]
                     .raw
                     .clone()
                     .unwrap(),
