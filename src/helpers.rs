@@ -6,6 +6,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::BufReader;
 use std::marker::PhantomData;
+use std::path::Path;
 use std::str::FromStr;
 
 use serde::de;
@@ -84,9 +85,9 @@ lazy_static! {
             ))
             .unwrap()
         } else {
-            let url = Url::parse(VERSIONS_URL).unwrap();
+            let url: Url = Url::parse(VERSIONS_URL).unwrap();
             serde_json::from_slice(
-                &*download(None, vec![url.clone()]).unwrap()[&url]
+                &*download(None as Option<std::ffi::OsString>, vec![url.clone()], false).unwrap()[&url]
                     .raw
                     .clone()
                     .unwrap(),

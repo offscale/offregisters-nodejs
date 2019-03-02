@@ -6,7 +6,7 @@ use failure::Error;
 use offregisters_lib::download::download;
 use offregisters_lib::env::env_or;
 use offregisters_lib::OffRegisters;
-use std::path::Path;
+
 use url::Url;
 
 mod helpers;
@@ -24,6 +24,7 @@ impl OffRegisters for NodeJs {
         download(
             Some(&download_dir),
             URLS.iter().map(|url| Url::parse(url).unwrap()).collect(),
+            false,
         )?;
         Ok(())
     }
