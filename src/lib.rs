@@ -10,7 +10,7 @@ use offregisters_lib::download::download;
 use offregisters_lib::env::env_or;
 use offregisters_lib::OffRegisters;
 
-mod helpers;
+pub mod helpers;
 
 pub struct NodeJs;
 

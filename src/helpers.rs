@@ -22,18 +22,18 @@ use offregisters_lib::download::download;
 const VERSIONS_URL: &'static str = "https://nodejs.org/dist/index.json";
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct Version {
-    version: String,
-    date: String,
-    files: Vec<String>,
-    npm: Option<String>,
-    v8: String,
-    uv: Option<String>,
-    zlib: Option<String>,
-    openssl: Option<String>,
-    modules: Option<String>,
+pub struct Version {
+    pub version: String,
+    pub date: String,
+    pub files: Vec<String>,
+    pub npm: Option<String>,
+    pub v8: String,
+    pub uv: Option<String>,
+    pub zlib: Option<String>,
+    pub openssl: Option<String>,
+    pub modules: Option<String>,
     #[serde(deserialize_with = "bool_or_string")]
-    lts: String,
+    pub lts: String,
 }
 
 fn bool_or_string<'de, T, D>(deserializer: D) -> Result<T, D::Error>
@@ -78,7 +78,7 @@ where
 }
 
 lazy_static! {
-    static ref VERSIONS: Vec<Version> = || -> Vec<Version> {
+    pub static ref VERSIONS: Vec<Version> = || -> Vec<Version> {
         if cfg!(test) {
             serde_json::from_reader(BufReader::new(
                 File::open(Path::new("mocks").join("index.json")).unwrap(),
@@ -98,7 +98,7 @@ lazy_static! {
     }();
 }
 
-fn filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
+pub fn filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
     VERSIONS.iter().filter(move |version: &&Version| {
         if filter == "lts" {
             version.lts != "false"
@@ -108,8 +108,8 @@ fn filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
     })
 }
 
-fn highest_version(versions: Vec<&Version>) -> &Version {
-    VERSIONS
+pub fn highest_version(versions: Vec<&Version>) -> &Version {
+    versions
         .iter()
         .fold(versions[0].clone(), |previous, current| {
             if SemverVersion::parse(&previous.version) < SemverVersion::parse(&current.version) {
