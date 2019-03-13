@@ -36,10 +36,38 @@ pub struct Version {
     pub lts: String,
 }
 
+impl Version {
+    pub fn ver_only<T>(version: T) -> Version
+        where T: Into<String> {
+        Version {
+            version: version.into(),
+            date: String::new(),
+            files: Vec::new(),
+            npm: None,
+            v8: String::new(),
+            uv: None,
+            zlib: None,
+            openssl: None,
+            modules: None,
+            lts: String::new(),
+        }
+    }
+
+    pub fn is_ver_only(&self) -> bool {
+        self.lts.len() == 0
+    }
+}
+
+impl AsRef<Version> for Version {
+    fn as_ref(&self) -> &Version {
+        &self
+    }
+}
+
 fn bool_or_string<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-where
-    T: Deserialize<'de> + FromStr<Err = std::string::ParseError>,
-    D: Deserializer<'de>,
+    where
+        T: Deserialize<'de> + FromStr<Err=std::string::ParseError>,
+        D: Deserializer<'de>,
 {
     // This is a Visitor that forwards string types to T's `FromStr` impl and
     // forwards map types to T's `Deserialize` impl. The `PhantomData` is to
@@ -49,8 +77,8 @@ where
     struct BoolOrString<T>(PhantomData<fn() -> T>);
 
     impl<'de, T> Visitor<'de> for BoolOrString<T>
-    where
-        T: Deserialize<'de> + FromStr<Err = std::string::ParseError>,
+        where
+            T: Deserialize<'de> + FromStr<Err=std::string::ParseError>,
     {
         type Value = T;
 
@@ -59,16 +87,16 @@ where
         }
 
         fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+            where
+                E: serde::de::Error,
         {
             self.visit_str(if value { "true" } else { "false" })
             // Err(Error::invalid_type(Unexpected::Bool(value), &self))
         }
 
         fn visit_str<E>(self, value: &str) -> Result<T, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             Ok(FromStr::from_str(value).unwrap())
         }
@@ -98,7 +126,7 @@ lazy_static! {
     }();
 }
 
-pub fn filter_versions(filter: &str) -> impl Iterator<Item = &Version> {
+pub fn filter_versions(filter: &str) -> impl Iterator<Item=&Version> {
     VERSIONS.iter().filter(move |version: &&Version| {
         if filter == "lts" {
             version.lts != "false"
